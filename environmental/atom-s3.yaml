@@ -1,0 +1,424 @@
+esphome:
+  name: is-env-${location_name}
+  friendly_name: Islestone ${location_name_friendly}
+  #name_add_mac_suffix: True
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: arduino
+
+logger:
+  level: DEBUG
+
+ota:
+  - platform: esphome
+    password: "6429ad6e6e029c7daa76e466dae16839"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  use_address: ${use_address}
+
+mqtt:
+  broker: !is_mqtt_host
+  username: !is_mqtt_user
+  password: !is_mqtt_pass
+  discovery_unique_id_generator: mac
+  topic_prefix: is-env/${location_name}
+  reboot_timeout: 5min
+
+web_server:
+  port: 80
+
+#time:
+#  - platform: sntp
+#    id: sntp_time
+#    timezone: Europe/London
+#    servers:
+#     - 0.uk.pool.ntp.org
+#     - 1.uk.pool.ntp.org
+#     - 2.uk.pool.ntp.org
+
+globals:
+  - id: temp_a_max
+    type: float
+    restore_value: yes
+    initial_value: '-40.0'
+  - id: temp_a_min
+    type: float
+    restore_value: yes
+    initial_value: '125.0'
+  - id: temp_b_max
+    type: float
+    restore_value: yes
+    initial_value: '-40.0'
+  - id: temp_b_min
+    type: float
+    restore_value: yes
+    initial_value: '125.0'
+
+font:
+  - file: "gfonts://Roboto"
+    id: font_small
+    size: 16
+  - file:
+      type: gfonts
+      family: Roboto
+      weight: 900
+    id: font_large
+    glyphs: [1,2,3,4,5,6,7,8,9,0,.]
+    size: 24
+
+spi:
+  clk_pin: 17
+  mosi_pin: 21
+
+display:
+  - platform: st7789v
+    id: display_tft
+    model: Custom
+    height: 128
+    width: 128
+    rotation: 180
+    offset_height: 2
+    offset_width: 1
+    backlight_pin: 16
+    cs_pin: 15
+    dc_pin: 33
+    reset_pin: 34
+    eightbitcolor: true
+    update_interval: 5s
+    lambda: |-
+   
+      Color bg_color_header = Color(0, 0, 0);
+      Color bg_color_a = Color(255, 190, 0);
+      Color bg_color_b = Color(255, 190, 0);
+      Color bg_color_status = Color(255, 190, 0);
+
+      Color fg_color_header = Color(255, 255, 255);
+      Color fg_color_a = Color(0, 0, 0);
+      Color fg_color_b = Color(0, 0, 0);
+      Color fg_color_status = Color(0, 0, 0);
+
+      it.fill(bg_color_header);
+
+      //it.strftime(64, 4, id(font_small), fg_color_header, TextAlign::TOP_CENTER, "%H:%M", id(sntp_time).now());
+      it.printf(64, 4, id(font_small), fg_color_header, TextAlign::TOP_CENTER, "%s", "${location_name_friendly}");
+      
+
+      if (id(alarm_a_state).state) {
+        bg_color_a = Color(255, 0, 0);
+        fg_color_a = Color(255, 255, 255);
+      } else if (id(sensor_a_fault).state) {
+        bg_color_a = Color(255, 190, 0);
+      } else {
+        bg_color_a = Color(0, 255, 0);
+      }
+
+      if (id(alarm_b_state).state) {
+        fg_color_b = Color(255, 255, 255);
+        bg_color_b = Color(255, 0, 0);
+      } else if (id(sensor_b_fault).state) {
+        bg_color_b = Color(255, 190, 0);
+      } else {
+        bg_color_b = Color(0, 255, 0);
+      }
+
+      if (id(alarm_state).state) {
+        bg_color_status = Color(255, 0, 0);
+        fg_color_status = Color(255, 255, 255);
+      } else if (id(sensor_a_fault).state || id(sensor_b_fault).state) {
+        bg_color_status = Color(255, 190, 0);
+      } else {
+        bg_color_status = Color(0, 255, 0);
+      }
+
+      it.filled_rectangle(0, 32, 63, 64, bg_color_a); 
+      it.filled_rectangle(66, 32, 128, 64, bg_color_b);
+      it.filled_rectangle(0, 99, 128, 30, bg_color_status);
+
+      it.printf(32, 49, id(font_large), fg_color_a, TextAlign::CENTER, "%.1f", id(temperature_a).state);
+      it.printf(96, 49, id(font_large), fg_color_b, TextAlign::CENTER, "%.1f", id(temperature_b).state);
+      it.printf(32, 79, id(font_small), fg_color_a, TextAlign::CENTER, "°C");
+      it.printf(96, 79, id(font_small), fg_color_b, TextAlign::CENTER, "°C");
+
+      it.printf(64, 119, id(font_small), fg_color_status, TextAlign::BASELINE_CENTER, "%s", id(alarm_state).state ? "ALARM" : id(device_status).state ? "Problem" : "Status OK");
+
+
+binary_sensor:
+
+  - platform: gpio
+    pin:
+      number: 41
+      inverted: true
+    name: LCD Button
+    internal: true 
+    on_click:
+      - min_length: 10ms
+        max_length: 900ms
+        then:
+          - lambda: |-
+              ESP_LOGI("button", "Short press detected!");
+              id(display_tft).update();
+      - min_length: 1000ms
+        max_length: 10000ms
+        then:
+          - lambda: |-
+              ESP_LOGI("button", "Long press detected!");
+              id(temp_a_max) = id(temperature_a).state;
+              id(temp_a_min) = id(temperature_a).state;
+              id(temp_b_max) = id(temperature_b).state;
+              id(temp_b_min) = id(temperature_b).state;
+              id(sensor_temp_a_max).publish_state(id(temp_a_max));
+              id(sensor_temp_a_min).publish_state(id(temp_a_min));
+              id(sensor_temp_b_max).publish_state(id(temp_b_max));
+              id(sensor_temp_b_min).publish_state(id(temp_b_min));  
+              ESP_LOGI("button", "Max/min entries reset.");
+
+         
+  # Alarm state for Temperature A
+  - platform: template
+    name: "Probe A Alarm"
+    id: alarm_a_state
+    device_class: problem
+    lambda: |-
+      if (id(temperature_a).state > id(alarm_a_high).state || id(temperature_a).state < id(alarm_a_low).state) {
+        return true;
+      } else {
+        return false;
+      }
+
+  # Alarm state for Temperature B
+  - platform: template
+    name: "Probe B Alarm"
+    id: alarm_b_state
+    device_class: problem
+    lambda: |-
+      if (id(temperature_b).state > id(alarm_b_high).state || id(temperature_b).state < id(alarm_b_low).state) {
+        return true;
+      } else {
+        return false;
+      }
+
+  # Overall Alarm state
+  - platform: template
+    name: "Device Alarm State"
+    id: alarm_state
+    device_class: problem
+    lambda: |-
+      if (id(alarm_a_state).state || id(alarm_b_state).state) {
+        return true;
+      } else {
+        return false;
+      }
+
+# Binary sensors to track fault states
+
+  - platform: template
+    name: "Probe A Fault"
+    id: sensor_a_fault
+    device_class: problem
+    lambda: |-
+      if (isnan(id(temperature_a).state)) {
+        return true;
+      } else {
+        return false;
+      }
+
+  - platform: template
+    name: "Probe B Fault"
+    id: sensor_b_fault
+    device_class: problem
+    lambda: |-
+      if (isnan(id(temperature_b).state)) {
+        return true;
+      } else {
+        return false;
+      }
+
+  - platform: template
+    name: "Device Fault State"
+    device_class: problem
+    lambda: |-
+      return (id(sensor_a_fault).state || id(sensor_b_fault).state);
+
+  - platform: template
+    name: "Device Summary Status"
+    id: device_status
+    device_class: problem
+    lambda: |-
+      if (id(alarm_state).state) {
+        return true;
+      } else if (id(sensor_a_fault).state || id(sensor_b_fault).state) {
+        return true;
+      } else {
+        return false;
+      }
+
+button:
+  - platform: template
+    name: "Reset Max/Min"
+    on_press:
+      then:
+        - lambda: |-
+            id(temp_a_max) = id(temperature_a).state;
+            id(temp_a_min) = id(temperature_a).state;
+            id(temp_b_max) = id(temperature_b).state;
+            id(temp_b_min) = id(temperature_b).state;
+            id(sensor_temp_a_max).publish_state(id(temp_a_max));
+            id(sensor_temp_a_min).publish_state(id(temp_a_min));
+            id(sensor_temp_b_max).publish_state(id(temp_b_max));
+            id(sensor_temp_b_min).publish_state(id(temp_b_min));  
+
+one_wire:
+  - platform: gpio
+    pin: GPIO2
+    id: onewire_a
+  - platform: gpio
+    pin: GPIO1
+    id: onewire_b
+
+sensor:
+
+  - platform: dallas_temp
+    one_wire_id: onewire_a
+    name: "Probe A Temperature"
+    id: temperature_a
+    update_interval: 20s
+    on_value:
+      - lambda: |-
+
+          // Max/min temperature checks
+          if (id(temperature_a).state > id(temp_a_max)) {
+            id(temp_a_max) = id(temperature_a).state;
+            id(sensor_temp_a_max).publish_state(id(temp_a_max));
+          }
+          if (id(temperature_a).state < id(temp_a_min)) {
+            id(temp_a_min) = id(temperature_a).state;
+            id(sensor_temp_a_min).publish_state(id(temp_a_min));
+          }
+          id(display_tft).update();
+
+  - platform: dallas_temp
+    one_wire_id: onewire_b
+    name: "Probe B Temperature"
+    id: temperature_b
+    update_interval: 20s
+    on_value:
+      - lambda: |-
+
+          // Max/min temperature checks
+          if (id(temperature_b).state > id(temp_b_max)) {
+            id(temp_b_max) = id(temperature_b).state;
+            id(sensor_temp_b_max).publish_state(id(temp_b_max));
+          }
+          if (id(temperature_b).state < id(temp_b_min)) {
+            id(temp_b_min) = id(temperature_b).state;
+            id(sensor_temp_b_min).publish_state(id(temp_b_min));
+          }
+          id(display_tft).update();
+
+  - platform: template
+    name: "Probe A Max"
+    id: sensor_temp_a_max
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    lambda: |-
+      return id(temp_a_max);
+
+  - platform: template
+    name: "Probe A Min"
+    id: sensor_temp_a_min
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    lambda: |-
+      return id(temp_a_min);
+
+  - platform: template
+    name: "Probe B Max"
+    id: sensor_temp_b_max
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    lambda: |-
+      return id(temp_b_max);
+
+  - platform: template
+    name: "Probe B Min"
+    id: sensor_temp_b_min
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    lambda: |-
+      return id(temp_b_min);
+
+  - platform: uptime
+    type: seconds
+    name: Uptime Sensor
+
+  - platform: wifi_signal
+    name: "WiFi Signal Sensor"
+    update_interval: 60s
+
+number:
+  - platform: template
+    id: alarm_a_high
+    name: "Alarm A - High"
+    device_class: temperature
+    restore_value: true
+    min_value: -40.0
+    max_value: 125.0
+    step: 0.5
+    optimistic: true
+    initial_value: 24
+    icon: "mdi:thermometer-plus"
+    entity_category: "config"
+
+  - platform: template
+    id: alarm_a_low
+    name: "Alarm A - Low"
+    device_class: temperature
+    restore_value: true
+    min_value: -40.0
+    max_value: 125.0
+    step: 0.5
+    optimistic: true
+    initial_value: 4
+    icon: "mdi:thermometer-minus"
+    entity_category: "config"
+
+  - platform: template
+    id: alarm_b_high
+    name: "Alarm B - High"
+    device_class: temperature
+    restore_value: true
+    min_value: -40.0
+    max_value: 125.0
+    step: 0.5
+    optimistic: true
+    initial_value: 24
+    icon: "mdi:thermometer-plus"
+    entity_category: "config"
+
+  - platform: template
+    id: alarm_b_low
+    name: "Alarm B - Low"
+    device_class: temperature
+    restore_value: true
+    min_value: -40.0
+    max_value: 125.0
+    step: 0.5
+    optimistic: true
+    initial_value: 4
+    icon: "mdi:thermometer-minus"
+    entity_category: "config"
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: IP Address
+    ssid:
+      name: Connected SSID
+    mac_address:
+      name: Wifi Mac Address
+    dns_address:
+      name: DNS Address
