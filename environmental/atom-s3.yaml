@@ -21,9 +21,9 @@ wifi:
   use_address: ${use_address}
 
 mqtt:
-  broker: !is_mqtt_host
-  username: !is_mqtt_user
-  password: !is_mqtt_pass
+  broker: !secret is_mqtt_host
+  username: !secret is_mqtt_user
+  password: !secret is_mqtt_pass
   discovery_unique_id_generator: mac
   topic_prefix: is-env/${location_name}
   reboot_timeout: 5min
