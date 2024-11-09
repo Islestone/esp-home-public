@@ -67,7 +67,7 @@ font:
       family: Roboto
       weight: 900
     id: font_large
-    glyphs: [1,2,3,4,5,6,7,8,9,0,.]
+    glyphs: [1,2,3,4,5,6,7,8,9,0,.,-]
     size: 24
 
 spi:
@@ -89,62 +89,151 @@ display:
     reset_pin: 34
     eightbitcolor: true
     update_interval: 5s
-    lambda: |-
-   
-      Color bg_color_header = Color(0, 0, 0);
-      Color bg_color_a = Color(255, 190, 0);
-      Color bg_color_b = Color(255, 190, 0);
-      Color bg_color_status = Color(255, 190, 0);
-
-      Color fg_color_header = Color(255, 255, 255);
-      Color fg_color_a = Color(0, 0, 0);
-      Color fg_color_b = Color(0, 0, 0);
-      Color fg_color_status = Color(0, 0, 0);
-
-      it.fill(bg_color_header);
-
-      //it.strftime(64, 4, id(font_small), fg_color_header, TextAlign::TOP_CENTER, "%H:%M", id(sntp_time).now());
-      it.printf(64, 4, id(font_small), fg_color_header, TextAlign::TOP_CENTER, "%s", "${location_name_friendly}");
+    pages: 
+      - id: page_home
+        lambda: |-
       
+          Color bg_color_header = Color(0, 0, 0);
+          Color bg_color_a = Color(255, 190, 0);
+          Color bg_color_b = Color(255, 190, 0);
+          Color bg_color_status = Color(255, 190, 0);
 
-      if (id(alarm_a_state).state) {
-        bg_color_a = Color(255, 0, 0);
-        fg_color_a = Color(255, 255, 255);
-      } else if (id(sensor_a_fault).state) {
-        bg_color_a = Color(255, 190, 0);
-      } else {
-        bg_color_a = Color(0, 255, 0);
-      }
+          Color fg_color_header = Color(255, 255, 255);
+          Color fg_color_a = Color(0, 0, 0);
+          Color fg_color_b = Color(0, 0, 0);
+          Color fg_color_status = Color(0, 0, 0);
 
-      if (id(alarm_b_state).state) {
-        fg_color_b = Color(255, 255, 255);
-        bg_color_b = Color(255, 0, 0);
-      } else if (id(sensor_b_fault).state) {
-        bg_color_b = Color(255, 190, 0);
-      } else {
-        bg_color_b = Color(0, 255, 0);
-      }
+          it.fill(bg_color_header);
 
-      if (id(alarm_state).state) {
-        bg_color_status = Color(255, 0, 0);
-        fg_color_status = Color(255, 255, 255);
-      } else if (id(sensor_a_fault).state || id(sensor_b_fault).state) {
-        bg_color_status = Color(255, 190, 0);
-      } else {
-        bg_color_status = Color(0, 255, 0);
-      }
+          //it.strftime(64, 4, id(font_small), fg_color_header, TextAlign::TOP_CENTER, "%H:%M", id(sntp_time).now());
+          it.printf(64, 4, id(font_small), fg_color_header, TextAlign::TOP_CENTER, "%s", "${location_name_friendly}");
+          
 
-      it.filled_rectangle(0, 32, 63, 64, bg_color_a); 
-      it.filled_rectangle(66, 32, 128, 64, bg_color_b);
-      it.filled_rectangle(0, 99, 128, 30, bg_color_status);
+          if (id(alarm_a_state).state) {
+            bg_color_a = Color(255, 0, 0);
+            fg_color_a = Color(255, 255, 255);
+          } else if (id(sensor_a_fault).state) {
+            bg_color_a = Color(255, 190, 0);
+          } else {
+            bg_color_a = Color(0, 255, 0);
+          }
 
-      it.printf(32, 49, id(font_large), fg_color_a, TextAlign::CENTER, "%.1f", id(temperature_a).state);
-      it.printf(96, 49, id(font_large), fg_color_b, TextAlign::CENTER, "%.1f", id(temperature_b).state);
-      it.printf(32, 79, id(font_small), fg_color_a, TextAlign::CENTER, "°C");
-      it.printf(96, 79, id(font_small), fg_color_b, TextAlign::CENTER, "°C");
+          if (id(alarm_b_state).state) {
+            fg_color_b = Color(255, 255, 255);
+            bg_color_b = Color(255, 0, 0);
+          } else if (id(sensor_b_fault).state) {
+            bg_color_b = Color(255, 190, 0);
+          } else {
+            bg_color_b = Color(0, 255, 0);
+          }
 
-      it.printf(64, 119, id(font_small), fg_color_status, TextAlign::BASELINE_CENTER, "%s", id(alarm_state).state ? "ALARM" : id(device_status).state ? "Problem" : "Status OK");
+          if (id(alarm_state).state) {
+            bg_color_status = Color(255, 0, 0);
+            fg_color_status = Color(255, 255, 255);
+          } else if (id(sensor_a_fault).state || id(sensor_b_fault).state) {
+            bg_color_status = Color(255, 190, 0);
+          } else {
+            bg_color_status = Color(0, 255, 0);
+          }
 
+          it.filled_rectangle(0, 32, 63, 64, bg_color_a); 
+          it.filled_rectangle(66, 32, 128, 64, bg_color_b);
+          it.filled_rectangle(0, 99, 128, 30, bg_color_status);
+
+          it.printf(32, 49, id(font_large), fg_color_a, TextAlign::CENTER, "%.1f", id(temperature_a).state);
+          it.printf(96, 49, id(font_large), fg_color_b, TextAlign::CENTER, "%.1f", id(temperature_b).state);
+          it.printf(32, 79, id(font_small), fg_color_a, TextAlign::CENTER, "°C");
+          it.printf(96, 79, id(font_small), fg_color_b, TextAlign::CENTER, "°C");
+
+          it.printf(64, 119, id(font_small), fg_color_status, TextAlign::BASELINE_CENTER, "%s", id(alarm_state).state ? "ALARM" : id(device_status).state ? "Problem" : "Status OK");
+      - id: page_maxmin
+        lambda: |-
+      
+          Color bg_color_header = Color(0, 0, 0);
+          Color bg_color_a = Color(0, 100, 255);
+          Color bg_color_b = Color(0, 100, 255);
+          Color bg_color_status = Color(0, 0, 0);
+
+          Color fg_color_header = Color(255, 255, 255);
+          Color fg_color_a = Color(0, 0, 0);
+          Color fg_color_b = Color(0, 0, 0);
+          Color fg_color_status = Color(255, 255, 255);
+
+          it.fill(bg_color_header);
+
+          //it.strftime(64, 4, id(font_small), fg_color_header, TextAlign::TOP_CENTER, "%H:%M", id(sntp_time).now());
+          it.printf(64, 4, id(font_small), fg_color_header, TextAlign::TOP_CENTER, "%s", "${location_name_friendly}");
+          
+          //if (id(alarm_a_state).state) {
+          //  bg_color_a = Color(255, 0, 0);
+          //  fg_color_a = Color(255, 255, 255);
+          //} else if (id(sensor_a_fault).state) {
+          //  bg_color_a = Color(255, 190, 0);
+          //} else {
+          //  bg_color_a = Color(0, 255, 0);
+          //}
+
+          //if (id(alarm_b_state).state) {
+          //  fg_color_b = Color(255, 255, 255);
+          //  bg_color_b = Color(255, 0, 0);
+          //} else if (id(sensor_b_fault).state) {
+          //  bg_color_b = Color(255, 190, 0);
+          //} else {
+          //  bg_color_b = Color(0, 255, 0);
+          //}
+
+          //if (id(alarm_state).state) {
+          //  bg_color_status = Color(255, 0, 0);
+          //  fg_color_status = Color(255, 255, 255);
+          //} else if (id(sensor_a_fault).state || id(sensor_b_fault).state) {
+          //  bg_color_status = Color(255, 190, 0);
+          //} else {
+          //  bg_color_status = Color(0, 255, 0);
+          //}
+
+          it.filled_rectangle(0, 32, 63, 64, bg_color_a); 
+          it.filled_rectangle(66, 32, 128, 64, bg_color_b);
+          it.filled_rectangle(0, 99, 128, 30, bg_color_status);
+
+          // Display or clear values based on conditions
+          if (id(temp_a_max) != 125) {
+            it.printf(32, 49, id(font_large), fg_color_a, TextAlign::CENTER, "%.1f", id(temp_a_max));
+          } else {
+            // Clear the area if temp_a_max is 125
+            //it.printf(32, 49, id(font_large), fg_color_a, TextAlign::CENTER, "");
+          }
+
+          if (id(temp_b_max) != 125) {
+            it.printf(96, 49, id(font_large), fg_color_b, TextAlign::CENTER, "%.1f", id(temp_b_max));
+          } else {
+            // Clear the area if temp_b_max is 125
+            //it.printf(96, 49, id(font_large), fg_color_b, TextAlign::CENTER, "");
+          }
+
+          if (id(temp_a_min) != -40) {
+            it.printf(32, 78, id(font_large), fg_color_a, TextAlign::CENTER, "%.1f", id(temp_a_min));
+          } else {
+            // Clear the area if temp_a_min is -40
+            //it.printf(32, 78, id(font_large), fg_color_a, TextAlign::CENTER, "");
+          }
+
+          if (id(temp_b_min) != -40) {
+            it.printf(96, 78, id(font_large), fg_color_b, TextAlign::CENTER, "%.1f", id(temp_b_min));
+          } else {
+            // Clear the area if temp_b_min is -40
+            //it.printf(96, 78, id(font_large), fg_color_b, TextAlign::CENTER, "");
+          }
+
+          it.printf(64, 119, id(font_small), fg_color_status, TextAlign::BASELINE_CENTER, "%s", "Max / Min");
+
+script:
+  - id: revert_to_homepage
+    then:
+      - lambda: |-
+          // Initial action
+          ESP_LOGD("delayed_reset_action", "Starting timer...");
+      - delay: 10s
+      - display.page.show: page_home
 
 binary_sensor:
 
@@ -158,23 +247,38 @@ binary_sensor:
       - min_length: 10ms
         max_length: 900ms
         then:
+          - display.page.show_next: display_tft
           - lambda: |-
               ESP_LOGI("button", "Short press detected!");
               id(display_tft).update();
+              if (id(revert_to_homepage).is_running()) {
+                id(revert_to_homepage).stop();
+              }
+              id(revert_to_homepage).execute();
       - min_length: 1000ms
         max_length: 10000ms
         then:
-          - lambda: |-
-              ESP_LOGI("button", "Long press detected!");
-              id(temp_a_max) = id(temperature_a).state;
-              id(temp_a_min) = id(temperature_a).state;
-              id(temp_b_max) = id(temperature_b).state;
-              id(temp_b_min) = id(temperature_b).state;
-              id(sensor_temp_a_max).publish_state(id(temp_a_max));
-              id(sensor_temp_a_min).publish_state(id(temp_a_min));
-              id(sensor_temp_b_max).publish_state(id(temp_b_max));
-              id(sensor_temp_b_min).publish_state(id(temp_b_min));  
-              ESP_LOGI("button", "Max/min entries reset.");
+          - if:
+              condition:
+                display.is_displaying_page: page_home
+              then:
+              - lambda: |-
+                  ESP_LOGI("button", "Home long press detected!");
+          - if:
+              condition:
+                display.is_displaying_page: page_maxmin
+              then:
+              - lambda: |-
+                  ESP_LOGI("button", "Maxmin long press detected!");
+                  id(temp_a_max) = id(temperature_a).state;
+                  id(temp_a_min) = id(temperature_a).state;
+                  id(temp_b_max) = id(temperature_b).state;
+                  id(temp_b_min) = id(temperature_b).state;
+                  id(sensor_temp_a_max).publish_state(id(temp_a_max));
+                  id(sensor_temp_a_min).publish_state(id(temp_a_min));
+                  id(sensor_temp_b_max).publish_state(id(temp_b_max));
+                  id(sensor_temp_b_min).publish_state(id(temp_b_min));  
+                  ESP_LOGI("button", "Max/min entries reset.");
 
          
   # Alarm state for Temperature A
@@ -422,3 +526,4 @@ text_sensor:
       name: Wifi Mac Address
     dns_address:
       name: DNS Address
+
